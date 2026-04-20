@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SMS — Stock Maintenance System</title>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>"/>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════
+     LOGIN PAGE
+═══════════════════════════════════════════════════════════ -->
+<div id="login-page" class="page login-page">
+  <div class="login-card">
+    <div class="login-brand">
+      <span class="login-icon">📦</span>
+      <h1>SMS</h1>
+      <p>Stock Maintenance System</p>
+    </div>
+    <form id="login-form" onsubmit="return false">
+      <div class="form-group">
+        <label for="login-username">Username</label>
+        <input id="login-username" type="text" placeholder="Enter username" autocomplete="username"/>
+      </div>
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <div class="pw-wrap">
+          <input id="login-password" type="password" placeholder="Enter password" autocomplete="current-password"/>
+          <button type="button" class="pw-toggle" onclick="togglePw()">👁</button>
+        </div>
+      </div>
+      <div id="login-error" class="alert alert-danger hidden"></div>
+      <button id="login-btn" class="btn btn-primary btn-full" onclick="doLogin()">
+        <span id="login-spinner" class="spinner hidden"></span> Sign In
+      </button>
+    </form>
+    <div class="login-demo">
+      <p>Demo accounts:</p>
+      <div class="demo-chips">
+        <button class="chip chip-red"    onclick="fillDemo('admin','admin123')">Admin</button>
+        <button class="chip chip-yellow" onclick="fillDemo('manager1','manager123')">Manager</button>
+        <button class="chip chip-green"  onclick="fillDemo('staff1','staff123')">Staff</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     MAIN APP SHELL
+═══════════════════════════════════════════════════════════ -->
+<div id="app" class="page hidden">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-brand">
+      <span class="sidebar-icon">📦</span>
+      <span class="sidebar-title">SMS</span>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="dashboard">
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" data-page="products">
+        <span class="nav-label">Products</span>
+      </a>
+      <a href="#" class="nav-item" data-page="transactions">
+        <span class="nav-label">Transactions</span>
+      </a>
+      <a href="#" class="nav-item" data-page="suppliers">
+       <span class="nav-label">Suppliers</span>
+      </a>
+      <a href="#" class="nav-item" data-page="reports">
+        <span class="nav-label">Reports</span>
+      </a>
+      <a href="#" class="nav-item admin-only hidden" data-page="users">
+        <span class="nav-icon">👥</span><span class="nav-label">Users</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="user-avatar">A</div>
+        <div>
+          <div class="user-name" id="user-name">Admin</div>
+          <div class="user-role" id="user-role">Admin</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()" title="Logout">⬅ Logout</button>
+    </div>
+  </aside>
+
+  <!-- Mobile top bar -->
+  <header class="mobile-header">
+    <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+    <span class="mobile-title">📦 SMS</span>
+    <button class="btn-logout-mobile" onclick="doLogout()">⬅</button>
+  </header>
+  <div id="sidebar-overlay" class="sidebar-overlay hidden" onclick="closeSidebar()"></div>
+
+  <!-- Main content -->
+  <main class="main-content" id="main-content">
+
+    <!-- ── DASHBOARD ──────────────────────────────────────── -->
+    <section id="page-dashboard" class="page-section">
+      <div class="page-header">
+        <h2>Dashboard</h2>
+        <span class="date-badge" id="dashboard-date"></span>
+      </div>
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi-card kpi-blue">
+         
+          <div class="kpi-info"><div class="kpi-value" id="kpi-total">–</div><div class="kpi-label">Total Products</div></div>
+        </div>
+        <div class="kpi-card kpi-red">
+          <div class="kpi-icon">🚫</div>
+          <div class="kpi-info"><div class="kpi-value" id="kpi-out">–</div><div class="kpi-label">Out of Stock</div></div>
+        </div>
+        <div class="kpi-card kpi-yellow">
+          <div class="kpi-icon">⚠️</div>
+          <div class="kpi-info"><div class="kpi-value" id="kpi-low">–</div><div class="kpi-label">Low Stock</div></div>
+        </div>
+        <div class="kpi-card kpi-green">
+          
+          <div class="kpi-info"><div class="kpi-value" id="kpi-rev">–</div><div class="kpi-label">Today's Revenue</div></div>
+        </div>
+      </div>
+      <div class="dash-grid">
+        <div class="card">
+          <div class="card-header">Recent Transactions</div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>SKU</th><th>Product</th><th>Type</th><th>Qty</th><th>Date</th><th>By</th></tr></thead>
+              <tbody id="recent-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">⚠️ Low Stock Alerts</div>
+          <div id="low-stock-list" class="alert-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PRODUCTS ───────────────────────────────────────── -->
+    <section id="page-products" class="page-section hidden">
+      <div class="page-header">
+        <h2>Products</h2>
+        <button id="btn-add-product" class="btn btn-primary manager-only hidden" onclick="openProductModal()">+ Add Product</button>
+      </div>
+      <div class="filters-bar">
+        <input type="text" id="prod-search" placeholder="🔍 Search SKU or name…" oninput="filterProducts()" class="filter-input"/>
+        <select id="prod-cat" onchange="filterProducts()" class="filter-select">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="products-table">
+          <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Price</th><th>Qty</th><th>Reorder Pt</th><th>Supplier</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="products-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── TRANSACTIONS ───────────────────────────────────── -->
+    <section id="page-transactions" class="page-section hidden">
+      <div class="page-header">
+        <h2>Transactions</h2>
+        <button class="btn btn-primary" onclick="openTxnModal()">+ New Transaction</button>
+      </div>
+      <div class="filters-bar">
+        <select id="txn-type" onchange="loadTransactions()" class="filter-select">
+          <option value="">All Types</option>
+          <option value="Sale">Sale</option>
+          <option value="Purchase">Purchase</option>
+        </select>
+        <input type="date" id="txn-from" onchange="loadTransactions()" class="filter-input" style="width:160px"/>
+        <input type="date" id="txn-to"   onchange="loadTransactions()" class="filter-input" style="width:160px"/>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>ID</th><th>SKU</th><th>Product</th><th>Type</th><th>Qty</th><th>Value</th><th>Date</th><th>By</th><th class="admin-only hidden">Del</th></tr></thead>
+          <tbody id="txn-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── SUPPLIERS ──────────────────────────────────────── -->
+    <section id="page-suppliers" class="page-section hidden">
+      <div class="page-header">
+        <h2>Suppliers</h2>
+        <button id="btn-add-supplier" class="btn btn-primary manager-only hidden" onclick="openSupplierModal()">+ Add Supplier</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>ID</th><th>Name</th><th>Contact</th><th>Address</th><th class="manager-only hidden">Actions</th></tr></thead>
+          <tbody id="suppliers-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── REPORTS ────────────────────────────────────────── -->
+    <section id="page-reports" class="page-section hidden">
+      <div class="page-header"><h2>Reports</h2></div>
+      <div class="report-controls card">
+        <div class="filters-bar">
+          <select id="report-type" class="filter-select" onchange="updateReportUI()">
+            <option value="sales">Daily Sales Report</option>
+            <option value="stock">Stock on Hand Report</option>
+          </select>
+          <div id="date-range-controls" class="inline-flex">
+            <label>From:</label>
+            <input type="date" id="report-from" class="filter-input" style="width:160px"/>
+            <label>To:</label>
+            <input type="date" id="report-to"   class="filter-input" style="width:160px"/>
+          </div>
+          <button class="btn btn-primary" onclick="loadReport()">Generate</button>
+          <button class="btn btn-secondary" onclick="exportCSV()">⬇ Export CSV</button>
+        </div>
+      </div>
+      <div id="report-summary" class="kpi-grid" style="margin-bottom:1.5rem"></div>
+      <div class="card">
+        <div class="card-header" id="report-title">Report</div>
+        <div class="table-wrap">
+          <table class="data-table" id="report-table">
+            <thead id="report-thead"></thead>
+            <tbody id="report-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── USERS ──────────────────────────────────────────── -->
+    <section id="page-users" class="page-section hidden">
+      <div class="page-header">
+        <h2>User Management</h2>
+        <button class="btn btn-primary" onclick="openUserModal()">+ Add User</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>ID</th><th>Username</th><th>Role</th></tr></thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODALS
+═══════════════════════════════════════════════════════════ -->
+<div id="modal-overlay" class="modal-overlay hidden" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modal-title">Modal</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modal-save" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="/static/js/api.js"></script>
+<script src="/static/js/auth.js"></script>
+<script src="/static/js/dashboard.js"></script>
+<script src="/static/js/products.js"></script>
+<script src="/static/js/transactions.js"></script>
+<script src="/static/js/suppliers.js"></script>
+<script src="/static/js/reports.js"></script>
+<script src="/static/js/users.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
